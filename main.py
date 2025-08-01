@@ -3,6 +3,102 @@ from sklearn import datasets
 import sklearn
 from itertools import repeat
 import mlflow
+from abc import ABC, abstractmethod
+
+class ActivationFunction(ABC):
+    @abstractmethod
+    def __call__(self, x):
+        pass
+
+    @abstractmethod
+    def differentiation(self, x):
+        pass
+
+class Sigmoid(ActivationFunction):
+    def __call__(self, x):
+        return 1 / (np.exp(-x) + 1)
+
+    def differentiation(self, x):
+        return x * (1 - x)
+
+class Layer(ABC):
+    @abstractmethod
+    def forward(self, x):
+        # 自身の重み行列と入力をもとに次の層に渡す行列を計算する
+        pass
+
+    @abstractmethod
+    def backward(self, dout):
+        # 次の層の誤差信号を受け取り, 自身の重み行列による誤差の微分を計算する.  
+        pass
+
+class HiddenLayer(Layer):
+    def __init__(self, input_size, output_size, activation_function: ActivationFunction):
+        self.input_size = input_size + 1 # bias
+        self.output_size = output_size
+        self.activation_function = activation_function
+        self.weights = np.random.randn(self.input_size * self.output_size).reshape((self.output_size, self.input_size))
+        self.dw = None
+        self.input = None
+        self.output = None
+    
+    def forward(self, x):
+        self.input = np.append(x, 1)
+        if len(self.input) == 1:
+            self.input = self.input[:, np.newaxis] # make 2D for batch process
+        self.output = self.activation_function(self.weights @ self.input)
+        return self.activation_function(self.weights @ self.input)
+    
+    def backward(self, dout):
+        delta = dout * self.activation_function.differentiation(self.output)
+        self.dw = delta @ self.input.T
+        return self.weights[:-1].T @ delta
+    
+    @property
+    def dw(self):
+        return self.dw
+
+class OutputLayer(HiddenLayer):
+    def __init__(self, input_size, output_size, activation_function: ActivationFunction):
+        self.input_size = input_size + 1 # bias
+        self.output_size = output_size
+        self.activation_function = activation_function
+        self.weights = np.random.randn(self.input_size * self.output_size).reshape((self.output_size, self.input_size))
+        self.dw = None
+        self.input = None
+        self.output = None
+
+    def forward(self, x):
+        self.input = np.append(x, 1)
+        if len(self.input) == 1:
+            self.input = self.input[:, np.newaxis] # make 2D for batch process
+        self.output = self.activation_function(self.weights @ self.input)
+        return self.output
+    
+    def backward(self, error_signal):
+        self.dw = error_signal @ self.input[:, np.newaxis].T
+        return error_signal[:-1] # the last record of error_signal is about next layer's bias so remove it
+        
+    @property
+    def dw(self):
+        return self.dw
+
+class Model:
+    def __init__(self, layers: list[Layer]):
+        self.layers = layers
+        self.differential = []
+    
+    def expect(self, x):
+        for layer in self.layers:
+            x = layer.forward(x)
+        self.output = x
+        return x
+
+    def learn(self, teacher):
+        error_signal = self.output - teacher
+        for layer in reversed(self.layers):
+            error_signal = layer.backward(error_signal)
+        
 
 with mlflow.start_run():
     iris = datasets.load_iris()
