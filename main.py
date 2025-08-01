@@ -29,45 +29,42 @@ with mlflow.start_run():
     HiddenLayer = FullyConnectedLayer(train_inputs.shape[1], 16, Sigmoid())
     OutputLayer = FullyConnectedLayer(16, train_teachers.shape[1], Sigmoid())
     optimizer = SGD(eta)
-    model = Model([HiddenLayer, OutputLayer], optimizer, MSE)
+    loss_func = MSE()
+    model = Model([HiddenLayer, OutputLayer], optimizer, loss_func)
 
     errors = []
 
     for epoch in range(epochs):
-        error_sum = 0
-        for i, t in zip(train_inputs, train_teachers):
-            model.expect(i)
-            error_sum += model.learn(t)
-        errors.append(error_sum / len(train_inputs))
-        mlflow.log_metric("training_loss", error_sum / len(train_inputs), step=epoch)
+        model.expect(train_inputs)
+        loss = model.learn(train_teachers)
+        errors.append(loss)
+        mlflow.log_metric("training_loss", loss, step=epoch)
             
 
     from matplotlib import pyplot as plt
     fig, ax = plt.subplots()
 
     ax.plot(errors)
-    fig.savefig("error.png")
-    mlflow.log_artifact("error.png")
+    fig.savefig("artifacts/error.png")
+    mlflow.log_artifact("artifacts/error.png")
     mlflow.log_metrics({"error": errors[-1]})
-    np.savez("weights.npz", model.layers[0].weights, model.layers[1].weights)
-    mlflow.log_artifact("weights.npz")
-
-    o = []
+    np.savez("artifacts/weights.npz", model.layers[0].weights, model.layers[1].weights)
+    mlflow.log_artifact("artifacts/weights.npz")
 
     # test
-    for i, t in zip(test_inputs, test_teachers):
-        out = model.expect(i)
-        E = model.loss_func(out, t)
-        print(E)
-        o.append((np.argmax(out, axis=0), np.argmax(t, axis=0)))
+    out = model.expect(test_inputs)
+    E = model.loss_func(out, test_teachers)
+    mlflow.log_metric("test_loss", E)
+    print(np.argmax(out, axis=1))
+    print(np.argmax(test_teachers, axis=1))
+    o = list(zip(np.argmax(out, axis=1), np.argmax(test_teachers, axis=1)))
 
     # visualize
-    a = np.zeros((3, 3))
+    confusion_matrix = np.zeros((3, 3))
     for o in o:
-        a[o[0], o[1]] += 1
-    print(a)
+        confusion_matrix[o[0], o[1]] += 1
     import seaborn as sns
     fig, ax = plt.subplots()
-    sns.heatmap(a, annot=True, fmt=".0f", ax=ax)
-    fig.savefig("confusion_matrix.png")
-    mlflow.log_artifact("confusion_matrix.png")
+    sns.heatmap(confusion_matrix, annot=True, fmt=".0f", ax=ax)
+    fig.savefig("artifacts/confusion_matrix.png")
+    mlflow.log_artifact("artifacts/confusion_matrix.png")

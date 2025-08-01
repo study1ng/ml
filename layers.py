@@ -25,19 +25,19 @@ class FullyConnectedLayer(Layer):
         self.input_size = input_size + 1 # bias
         self.output_size = output_size
         self.activation_function = activation_function
-        self.weights = np.random.randn(self.input_size * self.output_size).reshape((self.output_size, self.input_size))
+        self.weights = np.random.randn(self.input_size * self.output_size).reshape((self.input_size, self.output_size))
         self.dw = None
         self.input = None
         self.output = None
     
     def forward(self, x):
-        self.input = np.append(x, 1)
-        self.input = self.to2D(self.input)
-        self.output = self.activation_function(self.weights @ self.input)
-        self.output = self.to2D(self.output)
+        x = x
+        self.input = np.append(x, np.ones((x.shape[0], 1)), axis=1)
+        self.output = self.activation_function(self.input @ self.weights)
         return self.output
     
     def backward(self, dout):
         delta = dout * self.activation_function.differentiation(self.output)
-        self.dw = delta @ self.input.T
-        return self.weights[:, :-1].T @ delta
+        self.dw = self.input.T @ delta
+        self.dw /= self.input.shape[0]
+        return delta @ self.weights.T[:, :-1]

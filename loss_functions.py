@@ -19,7 +19,7 @@ class MSE(LossFunction):
         pass
 
     def __call__(self, output, teacher):
-        return 1/2 * np.sum((output - teacher) ** 2)
+        return 1/2 * np.sum((output - teacher) ** 2) / output.shape[0]
     
     def differentiation(self, output, teacher):
         return output - teacher
