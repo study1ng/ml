@@ -1,21 +1,33 @@
-[[experiment.model.layers]]
+[experiment]
+random_state=0
+test_portion=0.2
+
+[[experiment.preprocessor.methods]]
+class="Standardization"
+
+[experiment.trainer]
+class="MiniBatchTrainer"
+batch_size=10
+epochs=2000
+
+[[experiment.trainer.model.layers]]
 class="FullyConnectedLayer"
 input_size="input" #入力サイズに合わせて自動調節
 output_size=32
 activation_function="Sigmoid"
 
-[[experiment.model.layers]]
+[[experiment.trainer.model.layers]]
 class="FullyConnectedLayer"
 input_size=32
 output_size="output" # 出力サイズに合わせて自動調節
 activation_function="Identity"
 
-[experiment.model.optimizer]
+[experiment.trainer.model.optimizer]
 class="Momentum"
-learning_rate=0.1
+learning_rate=0.01
 momentum_rate=0.9
 log={"eta"="learning_rate", "momentum_rate"="momentum_rate"}
 
-[experiment.model.loss_function]
+[experiment.trainer.model.loss_function]
 class="MSE"
 log={"loss_function"="class"}
