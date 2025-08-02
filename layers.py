@@ -22,6 +22,7 @@ class Layer(ABC):
 
 class FullyConnectedLayer(Layer):
     def __init__(self, input_size, output_size, activation_function: ActivationFunction):
+        self.actual_input_size = input_size
         self.input_size = input_size + 1 # bias
         self.output_size = output_size
         self.activation_function = activation_function

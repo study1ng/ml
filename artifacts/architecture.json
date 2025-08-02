@@ -1,0 +1,14 @@
+[
+    {
+        "class": "FullyConnectedLayer",
+        "input_size": 10,
+        "output_size": 32,
+        "activation": "Sigmoid"
+    },
+    {
+        "class": "FullyConnectedLayer",
+        "input_size": 32,
+        "output_size": 1,
+        "activation": "Identity"
+    }
+]

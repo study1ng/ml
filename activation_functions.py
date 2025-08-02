@@ -14,5 +14,13 @@ class Sigmoid(ActivationFunction):
     def __call__(self, x):
         return 1 / (np.exp(-x) + 1)
 
+    def differentiation(self, y):
+        return y * (1 - y)
+
+class Identity(ActivationFunction):
+    """Identity function (does nothing)"""
+    def __call__(self, x):
+        return x
+
     def differentiation(self, x):
-        return x * (1 - x)
+        return np.ones_like(x)

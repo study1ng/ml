@@ -2,44 +2,48 @@ import numpy as np
 from sklearn import datasets
 import sklearn
 import mlflow
-from activation_functions import Sigmoid
-from layers import FullyConnectedLayer
-from optimizers import SGD
-from model import Model
-from loss_functions import MSE
+from config_parser import build_model_with_config
+import time
 
 with mlflow.start_run():
-    iris = datasets.load_iris()
-    inputs = iris.data
-    teachers = iris.target
-    ave = inputs.mean()
-    std = inputs.std()
-    inputs = (inputs - ave) / std
+    diabetes = datasets.load_diabetes()
+    inputs = diabetes.data
+    teachers = diabetes.target
 
-    # one-hot
-    teachers = np.eye(3)[teachers]
     train_inputs, test_inputs, train_teachers, test_teachers = sklearn.model_selection.train_test_split(inputs, teachers, test_size=0.2, random_state = 0)
+    train_teachers = train_teachers[:, np.newaxis]
+    test_teachers = test_teachers[:, np.newaxis]
+    mlflow.log_param("train_size", train_inputs.shape[0])
+    mlflow.log_param("test_size", test_inputs.shape[0])
 
-    # learning rate
-    eta = 0.01
-    epochs = 500
-    mlflow.log_param("eta", eta)
+    ave = train_inputs.mean(axis=0)
+    std = train_inputs.std(axis=0)
+    train_inputs = (train_inputs - ave) / std
+    test_inputs = (test_inputs - ave) / std
+    ave = train_teachers.mean(axis=0)
+    std = train_teachers.std(axis=0)
+    train_teachers = (train_teachers - ave) / std
+    test_teachers = (test_teachers - ave) / std
+
+    epochs = 2000
     mlflow.log_param("epochs", epochs)
 
-    HiddenLayer = FullyConnectedLayer(train_inputs.shape[1], 16, Sigmoid())
-    OutputLayer = FullyConnectedLayer(16, train_teachers.shape[1], Sigmoid())
-    optimizer = SGD(eta)
-    loss_func = MSE()
-    model = Model([HiddenLayer, OutputLayer], optimizer, loss_func)
 
+    model = build_model_with_config("exprconfig.toml", train_inputs, train_teachers)
+    model.log()
     errors = []
-
+    
+    train_start_time = time.perf_counter()
     for epoch in range(epochs):
         model.expect(train_inputs)
         loss = model.learn(train_teachers)
         errors.append(loss)
         mlflow.log_metric("training_loss", loss, step=epoch)
-            
+        
+    model.save_weights("artifacts/weights.npz")
+
+    train_end_time = time.perf_counter()
+    mlflow.log_metric("training_time", train_end_time - train_start_time)
 
     from matplotlib import pyplot as plt
     fig, ax = plt.subplots()
@@ -48,23 +52,21 @@ with mlflow.start_run():
     fig.savefig("artifacts/error.png")
     mlflow.log_artifact("artifacts/error.png")
     mlflow.log_metrics({"error": errors[-1]})
-    np.savez("artifacts/weights.npz", model.layers[0].weights, model.layers[1].weights)
-    mlflow.log_artifact("artifacts/weights.npz")
 
     # test
+    test_start_time = time.perf_counter()
     out = model.expect(test_inputs)
+    test_end_time = time.perf_counter()
+    mlflow.log_metric("test_time", test_end_time - test_start_time)
+
+    for i, v in enumerate(out - test_teachers):
+        mlflow.log_metric("test_error", v, step=i)
+
+    fig, ax = plt.subplots()
+    ax.scatter(out, test_teachers)
+    fig.savefig("artifacts/test.png")
+    mlflow.log_artifact("artifacts/test.png")
+
+
     E = model.loss_func(out, test_teachers)
     mlflow.log_metric("test_loss", E)
-    print(np.argmax(out, axis=1))
-    print(np.argmax(test_teachers, axis=1))
-    o = list(zip(np.argmax(out, axis=1), np.argmax(test_teachers, axis=1)))
-
-    # visualize
-    confusion_matrix = np.zeros((3, 3))
-    for o in o:
-        confusion_matrix[o[0], o[1]] += 1
-    import seaborn as sns
-    fig, ax = plt.subplots()
-    sns.heatmap(confusion_matrix, annot=True, fmt=".0f", ax=ax)
-    fig.savefig("artifacts/confusion_matrix.png")
-    mlflow.log_artifact("artifacts/confusion_matrix.png")
