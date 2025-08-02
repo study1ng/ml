@@ -3,15 +3,17 @@ import sklearn
 import numpy as np
 import mlflow
 import time
-
+import random
 
 class Experiment:
-    def __init__(self, builder, dataset, test_portion, random_state=None):
+    def __init__(self, builder, dataset, test_portion, random_state=None, random_seed=None, np_random_seed=None):
         self.builder = builder
         self.test_portion = test_portion
         self.random_state = random_state
         self.data = dataset.data
         self.target = dataset.target
+        np.random.seed(np_random_seed)
+        random.seed(random_seed)
 
     def preprocess(self):
         self.preprocessor = self.builder.build_preprocessor()

@@ -1,32 +1,36 @@
 [experiment]
-random_state=0
+random_state=1
 test_portion=0.2
+random_seed=1
+np_random_seed=1
+log={"random_state"="random_state", "test_portion"="test_portion", random_seed="random_seed", "np_random_seed"="np_random_seed"}
 
 [[experiment.preprocessor.methods]]
 class="Standardization"
 
 [experiment.trainer]
-class="MiniBatchTrainer"
-batch_size=10
+class="FullBatchTrainer"
 epochs=2000
+log={"epochs"="epochs", "trainer"="class"}
 
 [[experiment.trainer.model.layers]]
 class="FullyConnectedLayer"
 input_size="input" #入力サイズに合わせて自動調節
-output_size=32
+output_size=16
 activation_function="Sigmoid"
 
 [[experiment.trainer.model.layers]]
 class="FullyConnectedLayer"
-input_size=32
+input_size=16
 output_size="output" # 出力サイズに合わせて自動調節
 activation_function="Identity"
 
 [experiment.trainer.model.optimizer]
-class="Momentum"
-learning_rate=0.01
-momentum_rate=0.9
-log={"eta"="learning_rate", "momentum_rate"="momentum_rate"}
+class="Adam"
+learning_rate=0.001
+beta1=0.9
+beta2=0.999
+log={"eta"="learning_rate", "beta1"="beta1", "beta2"="beta2", "optimizer"="class"}
 
 [experiment.trainer.model.loss_function]
 class="MSE"

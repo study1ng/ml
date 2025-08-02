@@ -1,7 +1,7 @@
 import tomllib
 from activation_functions import Sigmoid, Identity
 from layers import FullyConnectedLayer
-from optimizers import GradientDescent, Momentum
+from optimizers import GradientDescent, Momentum, RMSProp, Adam
 from loss_functions import MSE
 from model import Model
 from preprocessor import Preprocessor
@@ -20,7 +20,9 @@ class Builder:
         "Standardization": Standardization,
         "OnlineTrainer": OnlineTrainer,
         "FullBatchTrainer": FullBatchTrainer,
-        "MiniBatchTrainer": MiniBatchTrainer
+        "MiniBatchTrainer": MiniBatchTrainer,
+        "RMSProp": RMSProp,
+        "Adam": Adam
     }
 
     def __init__(self, config_path):
@@ -45,7 +47,7 @@ class Builder:
         config = config.copy()
         if "log" in config.keys():
             for k, v in config["log"].items():
-                mlflow.log_param(k, v)
+                mlflow.log_param(k, config[v])
         config = {k: v for k, v in config.items() if k != "log"}
         for k, v in config.items():
             if v.__hash__ != None and v in cls._CONTENTMAP and k != "class":
@@ -93,6 +95,5 @@ class Builder:
 
     @property
     def expr_config(self):
-        print({k: v for k, v in self.config["experiment"].items() if not isinstance(v, dict)})
         return {k: v for k, v in self.config["experiment"].items() if not isinstance(v, dict)}
 

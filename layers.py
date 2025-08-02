@@ -3,22 +3,44 @@ from activation_functions import ActivationFunction
 from abc import ABC, abstractmethod
 
 class Layer(ABC):
+    """Abstract base class for a layer in the neural network.
+
+    This class defines the fundamental interface for all layers. Each layer
+    must be able to perform a forward pass (to compute its output) and a
+    backward pass (to compute gradients for its parameters and to propagate
+    the gradient backwards).
+    """
+
     @abstractmethod
-    def forward(self, x):
-        # 自身の重み行列と入力をもとに次の層に渡す行列を計算する
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        """Performs the forward pass of the layer.
+
+        Args:
+            x: Input data from the previous layer.
+
+        Returns:
+            The output of this layer.
+        """
         pass
 
     @abstractmethod
-    def backward(self, dout):
-        # 次の層の誤差信号を受け取り, 自身の重み行列による誤差の微分を計算する.  
+    def backward(self, dout: np.ndarray) -> np.ndarray:
+        """Performs the backward pass of the layer (backpropagation).
+
+        This method has two main responsibilities:
+        1. Compute the gradients for the layer's own parameters (e.g.,
+           weights and biases) and store them internally.
+        2. Propagate the gradient backwards to the previous layer.
+
+        Args:
+            dout: The gradient of the loss with respect to the output of this
+                  layer. This is the "downstream" gradient coming from the
+                  next layer in the network.
+
+        Returns:
+            The gradient of the loss with respect to the input of this layer.
+        """
         pass
-
-    @classmethod
-    def to2D(cls, x):
-        if len(x.shape) == 1:
-            return x[:, np.newaxis]
-        return x
-
 
 class FullyConnectedLayer(Layer):
     def __init__(self, input_size, output_size, activation_function: ActivationFunction):
