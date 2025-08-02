@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 import numpy as np
 import mlflow
-import random
 
 
 
@@ -9,7 +8,6 @@ class Trainer(ABC):
     def __init__(self, model, epochs):
         self.model = model
         self.epochs = epochs
-        mlflow.log_param("epochs", epochs)
     
     @abstractmethod
     def train(self, train_inputs, train_teachers):
@@ -41,7 +39,6 @@ class MiniBatchTrainer(Trainer):
     def __init__(self, model, epochs, batch_size):
         super().__init__(model, epochs)
         self.batch_size = batch_size
-        mlflow.log_param("batch_size", batch_size)
     
     def train(self, train_inputs, train_teachers):
         for epoch in range(self.epochs):
